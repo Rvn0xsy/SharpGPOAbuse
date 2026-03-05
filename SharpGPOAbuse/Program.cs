@@ -721,7 +721,7 @@ Revision=1";
             }
         }
 
-        public static void NewStartupScript(String ScriptName, String ScriptContents, String Domain, String DomainController, String GPOName, String distinguished_name, String objectType)
+        public static void NewStartupScript(String ScriptName, String ScriptContents, String Domain, String DomainController, String GPOName, String distinguished_name, String objectType, bool Force)
         {
             String hidden_ini;
             String GPOGuid = GetGPOGUID(DomainController, GPOName, distinguished_name);
@@ -763,9 +763,10 @@ Revision=1";
                 System.IO.Directory.CreateDirectory(path);
             }
             path += ScriptName;
-            if (File.Exists(path))
+            bool scriptExists = File.Exists(path);
+            if (scriptExists && !Force)
             {
-                Console.WriteLine("[!] A Startup script with the same name already exists. Choose a different name.\n[-] Exiting...\n");
+                Console.WriteLine("[!] A Startup script with the same name already exists. Use --Force to overwrite it or choose a different name.\n[-] Exiting...\n");
                 System.Environment.Exit(0);
             }
 
@@ -803,8 +804,15 @@ Revision=1";
 
                 }
 
-                int max = first_element.Max() + 1;
-                new_list.Add(hidden_ini = max.ToString() + "CmdLine=" + ScriptName + Environment.NewLine + max.ToString() + "Parameters=");
+                bool scriptAlreadyReferenced = new_list.Any(lineInIni =>
+                    Regex.IsMatch(lineInIni, @"^\d+CmdLine=", RegexOptions.IgnoreCase)
+                    && lineInIni.Substring(lineInIni.IndexOf('=') + 1).Equals(ScriptName, StringComparison.OrdinalIgnoreCase));
+
+                if (!scriptAlreadyReferenced)
+                {
+                    int max = first_element.Count > 0 ? first_element.Max() + 1 : 0;
+                    new_list.Add(hidden_ini = max.ToString() + "CmdLine=" + ScriptName + Environment.NewLine + max.ToString() + "Parameters=");
+                }
 
                 using (System.IO.StreamWriter file2 = new System.IO.StreamWriter(hidden_path))
                 {
@@ -826,7 +834,14 @@ Revision=1";
 
             }
 
-            Console.WriteLine("[+] Creating new startup script...");
+            if (scriptExists)
+            {
+                Console.WriteLine("[+] Overwriting startup script " + path);
+            }
+            else
+            {
+                Console.WriteLine("[+] Creating new startup script...");
+            }
             System.IO.File.WriteAllText(path, ScriptContents);
 
             if (objectType.Equals("Computer"))
@@ -1409,12 +1424,12 @@ Revision = 1
             // Add new startup script
             if (AddUserScript)
             {
-                NewStartupScript(ScriptName, ScriptContents, Domain, DomainController, GPOName, distinguished_name, "User");
+                NewStartupScript(ScriptName, ScriptContents, Domain, DomainController, GPOName, distinguished_name, "User", Force);
             }
 
             if (AddComputerScript)
             {
-                NewStartupScript(ScriptName, ScriptContents, Domain, DomainController, GPOName, distinguished_name, "Computer");
+                NewStartupScript(ScriptName, ScriptContents, Domain, DomainController, GPOName, distinguished_name, "Computer", Force);
             }
 
             // Add rights to user account
