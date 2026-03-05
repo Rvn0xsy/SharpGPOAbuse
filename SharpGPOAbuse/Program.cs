@@ -75,6 +75,9 @@ namespace SharpGPOAbuse
         [Option("", "ScriptContents", Required = false, HelpText = "New startup script contents.")]
         public String ScriptContents { get; set; }
 
+        [Option("", "ScriptFile", Required = false, HelpText = "Path to startup script file. Content will be used as ScriptContents.")]
+        public String ScriptFile { get; set; }
+
         [Option("h", "Help", Required = false, HelpText = "Display help menu.")]
         public bool Help { get; set; }
 
@@ -113,6 +116,8 @@ namespace SharpGPOAbuse
                 "\tSet the name of the new startup script.\n" +
                 "--ScriptContents\n" +
                 "\tSet the contents of the new startup script.\n" +
+                "--ScriptFile\n" +
+                "\tSet the path to a startup script file (use this OR --ScriptContents).\n" +
                 "--GPOName\n" +
                 "\tThe name of the vulnerable GPO.\n" +
                 "\n" +
@@ -122,6 +127,8 @@ namespace SharpGPOAbuse
                 "\tSet the name of the new startup script.\n" +
                 "--ScriptContents\n" +
                 "\tSet the contents of the new startup script.\n" +
+                "--ScriptFile\n" +
+                "\tSet the path to a startup script file (use this OR --ScriptContents).\n" +
                 "--GPOName\n" +
                 "\tThe name of the vulnerable GPO.\n" +
                 "\n" +
@@ -1182,15 +1189,42 @@ Revision = 1
 
                     if (string.IsNullOrEmpty(Options.ScriptName))
                     {
-                        Console.WriteLine("[!] To add a new startup script the following options are needed:\n\t--ScriptName\n\t--ScriptContents\n\n[-] Exiting...");
+                        Console.WriteLine("[!] To add a new startup script the following options are needed:\n\t--ScriptName\n\t--ScriptContents or --ScriptFile\n\n[-] Exiting...");
                         return;
                     }
-                    if (string.IsNullOrEmpty(Options.ScriptContents))
+
+                    bool hasScriptContents = !string.IsNullOrEmpty(Options.ScriptContents);
+                    bool hasScriptFile = !string.IsNullOrEmpty(Options.ScriptFile);
+
+                    if (!hasScriptContents && !hasScriptFile)
                     {
-                        Console.WriteLine("[!] To add a new startup script the following options are needed:\n\t--ScriptName\n\t--ScriptContents\n\n[-] Exiting...");
+                        Console.WriteLine("[!] To add a new startup script the following options are needed:\n\t--ScriptName\n\t--ScriptContents or --ScriptFile\n\n[-] Exiting...");
                         return;
                     }
-                    ScriptContents = Options.ScriptContents;
+
+                    if (hasScriptContents && hasScriptFile)
+                    {
+                        Console.WriteLine("[!] --ScriptFile and --ScriptContents are mutually exclusive. Specify only one.\n[-] Exiting...");
+                        return;
+                    }
+
+                    if (hasScriptFile)
+                    {
+                        try
+                        {
+                            ScriptContents = File.ReadAllText(Options.ScriptFile);
+                        }
+                        catch (System.Exception ex)
+                        {
+                            Console.WriteLine("[!] Could not read script file: " + Options.ScriptFile + "\n" + ex.Message + "\n[-] Exiting...");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        ScriptContents = Options.ScriptContents;
+                    }
+
                     ScriptName = Options.ScriptName;
 
                 }

